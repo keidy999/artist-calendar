@@ -113,7 +113,7 @@
   .filter-row {
     display: flex;
     gap: 5px;
-    padding: 16px 20px 0;
+    padding: 12px 20px 0;
   }
   .filter-chip {
     padding: 4px 11px;
@@ -135,6 +135,65 @@
     border-color: var(--chip-active-bg);
   }
   .filter-chip:not(.active):hover { background: var(--bg); }
+
+  /* ── Search ── */
+  .search-row {
+    padding: 10px 20px 0;
+  }
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    width: 13px;
+    height: 13px;
+    stroke: var(--text-tertiary);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: 7px 32px 7px 30px;
+    font-size: 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text-primary);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .search-input::placeholder { color: var(--text-tertiary); }
+  .search-input:focus { border-color: #4a90d9; }
+  .search-clear {
+    position: absolute;
+    right: 8px;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: var(--text-tertiary);
+  }
+  .search-clear svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .search-clear.visible { display: flex; }
 
   /* ── Event list ── */
   #eventList { padding-top: 4px; }
@@ -172,7 +231,10 @@
     border-radius: 12px;
     transition: border-color 0.12s;
   }
-  .event-card:hover { border-color: #4a90d9; }
+  .event-card.has-link {
+    cursor: pointer;
+  }
+  .event-card.has-link:hover { border-color: #4a90d9; }
 
   .card-top {
     display: flex;
@@ -270,6 +332,16 @@
     </div>
 
     <div class="filter-row" id="filterRow"></div>
+
+    <div class="search-row">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+        <input class="search-input" id="searchInput" type="text" placeholder="아티스트 또는 제목 검색" oninput="onSearch(this.value)">
+        <button class="search-clear" id="searchClear" aria-label="검색 지우기" onclick="clearSearch()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <div id="eventList"></div>
@@ -277,12 +349,8 @@
 </div>
 
 <script>
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ★ 여기에 Apps Script 배포 URL을 붙여넣으세요 ★
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycOi3WDUfh0JnIqV24US1BhVOphC8yHDWt7gx5f9BM9K-fgsgyKKeBIhEfhcBrSvDn/exec";
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// 표시할 월 목록 — 필요에 따라 추가하세요
 const MONTHS = ["2026-06","2026-07","2026-08"];
 const MONTH_LABELS = {
   "2026-06": "2026년 6월",
@@ -290,31 +358,30 @@ const MONTH_LABELS = {
   "2026-08": "2026년 8월",
 };
 
-const TYPES     = ["전체","발매","공연","기타 소식"];
+const TYPES      = ["전체","발매","공연","기타 소식"];
 const TYPE_BADGE = { "발매":"badge-release", "공연":"badge-concert", "기타 소식":"badge-etc" };
-const WEEKDAYS  = ["일","월","화","수","목","금","토"];
-const TODAY     = new Date().toISOString().slice(0, 10); // 오늘 날짜 자동
+const WEEKDAYS   = ["일","월","화","수","목","금","토"];
+const TODAY      = new Date().toISOString().slice(0, 10);
 
 const SVG_CLOCK = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>`;
 const SVG_PIN   = `<svg viewBox="0 0 24 24"><path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
 
 let monthIdx     = 0;
 let activeFilter = "전체";
-let allEvents    = [];   // 시트에서 불러온 전체 데이터 캐시
+let searchQuery  = "";
+let allEvents    = [];
 
 // ── 초기화 ──────────────────────────────────
 function init() {
-  // 현재 달이 MONTHS 안에 있으면 그 달부터 시작
   const thisMonth = TODAY.slice(0, 7);
   const idx = MONTHS.indexOf(thisMonth);
   if (idx !== -1) monthIdx = idx;
-
   updateMonthUI();
   buildFilters();
   fetchData();
 }
 
-// ── 월 UI 갱신 ──────────────────────────────
+// ── 월 UI ───────────────────────────────────
 function updateMonthUI() {
   document.getElementById("prevBtn").disabled = monthIdx === 0;
   document.getElementById("nextBtn").disabled = monthIdx === MONTHS.length - 1;
@@ -342,11 +409,25 @@ function setFilter(t) {
   render();
 }
 
+// ── 검색 ────────────────────────────────────
+function onSearch(val) {
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById("searchClear").classList.toggle("visible", val.length > 0);
+  render();
+}
+
+function clearSearch() {
+  document.getElementById("searchInput").value = "";
+  document.getElementById("searchClear").classList.remove("visible");
+  searchQuery = "";
+  render();
+}
+
 // ── 데이터 fetch ─────────────────────────────
 async function fetchData() {
   showLoading();
   try {
-    const res  = await fetch(SHEET_API_URL);
+    const res = await fetch(SHEET_API_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     allEvents = await res.json();
     render();
@@ -358,10 +439,16 @@ async function fetchData() {
 // ── 렌더링 ──────────────────────────────────
 function render() {
   const cm = MONTHS[monthIdx];
-  const filtered = allEvents.filter(e =>
-    e.date && e.date.startsWith(cm) &&
-    (activeFilter === "전체" || e.type === activeFilter)
-  );
+
+  let filtered = allEvents.filter(e => {
+    if (!e.date) return false;
+    const inMonth  = e.date.startsWith(cm);
+    const typeOk   = activeFilter === "전체" || e.type === activeFilter;
+    const searchOk = !searchQuery ||
+      (e.title  && e.title.toLowerCase().includes(searchQuery)) ||
+      (e.artist && e.artist.toLowerCase().includes(searchQuery));
+    return inMonth && typeOk && searchOk;
+  });
 
   const byDate = {};
   filtered.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
@@ -371,30 +458,37 @@ function render() {
   if (filtered.length === 0) {
     el.innerHTML = `<div class="state-box">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      해당 월에 일정이 없습니다
+      ${searchQuery ? "검색 결과가 없습니다" : "해당 월에 일정이 없습니다"}
     </div>`;
     return;
   }
 
   el.innerHTML = Object.keys(byDate).sort().map(date => {
-    const d      = new Date(date + "T00:00:00");
-    const dayNum = d.getDate();
-    const wd     = WEEKDAYS[d.getDay()];
+    const d       = new Date(date + "T00:00:00");
+    const dayNum  = d.getDate();
+    const wd      = WEEKDAYS[d.getDay()];
     const isToday = date === TODAY;
 
-    const cards = byDate[date].map(ev => `
-      <div class="event-card">
-        <div class="card-top">
-          <div class="card-title">${ev.title}</div>
-          <span class="type-badge ${TYPE_BADGE[ev.type] || "badge-etc"}">${ev.type}</span>
+    const cards = byDate[date].map(ev => {
+      const hasLink = ev.link && ev.link.trim() !== "";
+      const cardAttr = hasLink
+        ? `class="event-card has-link" onclick="window.open('${ev.link.trim()}','_blank')"`
+        : `class="event-card"`;
+
+      return `
+        <div ${cardAttr}>
+          <div class="card-top">
+            <div class="card-title">${ev.title}</div>
+            <span class="type-badge ${TYPE_BADGE[ev.type] || "badge-etc"}">${ev.type}</span>
+          </div>
+          <div class="card-artist">${ev.artist}</div>
+          <div class="card-meta">
+            <span class="card-meta-item">${SVG_CLOCK}${ev.time}</span>
+            ${ev.place ? `<span class="card-meta-item">${SVG_PIN}${ev.place}</span>` : ""}
+          </div>
         </div>
-        <div class="card-artist">${ev.artist}</div>
-        <div class="card-meta">
-          <span class="card-meta-item">${SVG_CLOCK}${ev.time}</span>
-          ${ev.place ? `<span class="card-meta-item">${SVG_PIN}${ev.place}</span>` : ""}
-        </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     return `
       <div class="date-section">
