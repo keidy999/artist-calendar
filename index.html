@@ -378,11 +378,15 @@
 <script>
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycOi3WDUfh0JnIqV24US1BhVOphC8yHDWt7gx5f9BM9K-fgsgyKKeBIhEfhcBrSvDn/exec";
 
-const MONTHS = ["2026-06","2026-07","2026-08"];
+const MONTHS = ["2026-06","2026-07","2026-08","2026-09","2026-10","2026-11","2026-12"];
 const MONTH_LABELS = {
   "2026-06": "2026년 6월",
   "2026-07": "2026년 7월",
   "2026-08": "2026년 8월",
+  "2026-09": "2026년 9월",
+  "2026-10": "2026년 10월",
+  "2026-11": "2026년 11월",
+  "2026-12": "2026년 12월",
 };
 
 const TYPES      = ["전체","발매","공연","기타"];
@@ -397,12 +401,10 @@ let monthIdx     = 0;
 let activeFilter = "전체";
 let searchQuery  = "";
 let allEvents    = [];
+let activeMonths = MONTHS;
 
 // ── 초기화 ──────────────────────────────────
 function init() {
-  const thisMonth = TODAY.slice(0, 7);
-  const idx = MONTHS.indexOf(thisMonth);
-  if (idx !== -1) monthIdx = idx;
   updateMonthUI();
   buildFilters();
   fetchData();
@@ -411,12 +413,12 @@ function init() {
 // ── 월 UI ───────────────────────────────────
 function updateMonthUI() {
   document.getElementById("prevBtn").disabled = monthIdx === 0;
-  document.getElementById("nextBtn").disabled = monthIdx === MONTHS.length - 1;
-  document.getElementById("monthLabel").textContent = MONTH_LABELS[MONTHS[monthIdx]] || MONTHS[monthIdx];
+  document.getElementById("nextBtn").disabled = monthIdx === activeMonths.length - 1;
+  document.getElementById("monthLabel").textContent = MONTH_LABELS[activeMonths[monthIdx]] || activeMonths[monthIdx];
 }
 
 function changeMonth(dir) {
-  monthIdx = Math.max(0, Math.min(MONTHS.length - 1, monthIdx + dir));
+  monthIdx = Math.max(0, Math.min(activeMonths.length - 1, monthIdx + dir));
   updateMonthUI();
   render();
 }
@@ -481,6 +483,14 @@ async function fetchData() {
     const res = await fetch(SHEET_API_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     allEvents = await res.json();
+    // 일정 있는 월만 추출
+    activeMonths = MONTHS.filter(m => allEvents.some(e => e.date && e.date.startsWith(m)));
+    if (activeMonths.length === 0) activeMonths = [MONTHS[0]];
+    // 현재 달이 있으면 그 달로, 없으면 첫 번째 달로
+    const thisMonth = TODAY.slice(0, 7);
+    const idx = activeMonths.indexOf(thisMonth);
+    monthIdx = idx !== -1 ? idx : 0;
+    updateMonthUI();
     render();
   } catch (e) {
     showError(e);
@@ -489,7 +499,7 @@ async function fetchData() {
 
 // ── 렌더링 ──────────────────────────────────
 function render() {
-  const cm = MONTHS[monthIdx];
+  const cm = activeMonths[monthIdx];
 
   let filtered = allEvents.filter(e => {
     if (!e.date) return false;
