@@ -172,7 +172,7 @@
     border-radius: 12px;
     transition: border-color 0.12s;
   }
-  .event-card:hover { border-color: var(--border-strong); }
+  .event-card:hover { border-color: #4a90d9; }
 
   .card-top {
     display: flex;
@@ -209,10 +209,16 @@
     gap: 3px;
   }
   .card-meta-item svg {
-    width: 12px; height: 12px;
-    stroke: currentColor; fill: none;
-    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    width: 11px;
+    height: 11px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     flex-shrink: 0;
+    position: relative;
+    top: 0px;
   }
 
   /* ── Loading / Empty / Error ── */
@@ -271,7 +277,7 @@
 <script>
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ★ 여기에 Apps Script 배포 URL을 붙여넣으세요 ★
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycOi3WDUfh0JnIqV24US1BhVOphC8yHDWt7gx5f9BM9K-fgsgyKKeBIhEfhcBrSvDn/exec";
+const SHEET_API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // 표시할 월 목록 — 필요에 따라 추가하세요
