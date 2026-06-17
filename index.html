@@ -389,7 +389,7 @@ function render() {
         <div class="card-artist">${ev.artist}</div>
         <div class="card-meta">
           <span class="card-meta-item">${SVG_CLOCK}${ev.time}</span>
-          <span class="card-meta-item">${SVG_PIN}${ev.place}</span>
+          ${ev.place ? `<span class="card-meta-item">${SVG_PIN}${ev.place}</span>` : ""}
         </div>
       </div>
     `).join("");
