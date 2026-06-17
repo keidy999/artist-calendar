@@ -136,6 +136,29 @@
   }
   .filter-chip:not(.active):hover { background: var(--bg); }
 
+  /* ── Search toggle btn ── */
+  .search-toggle-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s;
+    flex-shrink: 0;
+  }
+  .search-toggle-btn:hover { background: var(--bg); }
+  .search-toggle-btn.active { background: #2547c9; color: #fff; border-color: #2547c9; }
+  .search-toggle-btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
   /* ── Search ── */
   .search-row {
     padding: 10px 20px 0;
@@ -318,7 +341,12 @@
   <div class="sticky-top">
     <div class="header">
       <div class="header-eyebrow">Distribution Artists</div>
-      <div class="header-title">일정 캘린더</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="header-title">일정 캘린더</div>
+        <button class="search-toggle-btn" id="searchToggle" aria-label="검색" onclick="toggleSearch()">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="month-nav">
@@ -333,7 +361,7 @@
 
     <div class="filter-row" id="filterRow"></div>
 
-    <div class="search-row">
+    <div class="search-row" id="searchRow" style="display:none">
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
         <input class="search-input" id="searchInput" type="text" placeholder="아티스트 또는 제목 검색" oninput="onSearch(this.value)">
@@ -358,8 +386,8 @@ const MONTH_LABELS = {
   "2026-08": "2026년 8월",
 };
 
-const TYPES      = ["전체","발매","공연","기타 소식"];
-const TYPE_BADGE = { "발매":"badge-release", "공연":"badge-concert", "기타 소식":"badge-etc" };
+const TYPES      = ["전체","발매","공연","기타"];
+const TYPE_BADGE = { "발매":"badge-release", "공연":"badge-concert", "기타":"badge-etc" };
 const WEEKDAYS   = ["일","월","화","수","목","금","토"];
 const TODAY      = new Date().toISOString().slice(0, 10);
 
@@ -410,6 +438,19 @@ function setFilter(t) {
 }
 
 // ── 검색 ────────────────────────────────────
+function toggleSearch() {
+  const row = document.getElementById("searchRow");
+  const btn = document.getElementById("searchToggle");
+  const isOpen = row.style.display === "block";
+  row.style.display = isOpen ? "none" : "block";
+  btn.classList.toggle("active", !isOpen);
+  if (!isOpen) {
+    document.getElementById("searchInput").focus();
+  } else {
+    clearSearch();
+  }
+}
+
 function onSearch(val) {
   searchQuery = val.trim().toLowerCase();
   document.getElementById("searchClear").classList.toggle("visible", val.length > 0);
