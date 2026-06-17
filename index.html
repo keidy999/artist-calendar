@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아티스트 일정 캘린더</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.14);
+    --text-primary: #111110;
+    --text-secondary: #6b6b68;
+    --text-tertiary: #a0a09c;
+    --badge-release-bg: #e8f4e8;
+    --badge-release-text: #2d6a2d;
+    --badge-concert-bg: #eeecfd;
+    --badge-concert-text: #3e37a0;
+    --badge-etc-bg: #f0efeb;
+    --badge-etc-text: #5c5c58;
+    --chip-active-bg: #111110;
+    --chip-active-text: #ffffff;
+    --today-bg: #111110;
+    --today-text: #ffffff;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 80px;
+  }
+
+  /* ── Sticky top ── */
+  .sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    box-shadow: 0 1px 0 var(--border);
+    padding-bottom: 16px;
+  }
+
+  .header {
+    padding: 32px 20px 0;
+  }
+  .header-eyebrow {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  /* ── Month nav ── */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 16px 0;
+  }
+  .nav-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, opacity 0.12s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover { background: var(--bg); }
+  .nav-btn:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+  .nav-btn svg {
+    width: 16px; height: 16px;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .month-label {
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    text-align: center;
+    flex: 1;
+  }
+
+  /* ── Filters ── */
+  .filter-row {
+    display: flex;
+    gap: 5px;
+    padding: 16px 20px 0;
+  }
+  .filter-chip {
+    padding: 4px 11px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'Noto Sans KR', sans-serif;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    line-height: 1.5;
+  }
+  .filter-chip.active {
+    background: var(--chip-active-bg);
+    color: var(--chip-active-text);
+    border-color: var(--chip-active-bg);
+  }
+  .filter-chip:not(.active):hover { background: var(--bg); }
+
+  /* ── Event list ── */
+  #eventList { padding-top: 4px; }
+
+  .date-section { margin-top: 24px; }
+  .date-header {
+    padding: 0 20px 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+  }
+  .date-day {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .date-weekday { font-size: 12px; color: var(--text-secondary); }
+  .today-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: var(--today-bg);
+    color: var(--today-text);
+    letter-spacing: 0.2px;
+  }
+
+  /* ── Card ── */
+  .event-card {
+    margin: 0 20px 7px;
+    padding: 13px 15px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: border-color 0.12s;
+  }
+  .event-card:hover { border-color: var(--border-strong); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.45;
+  }
+  .type-badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 7px;
+    white-space: nowrap;
+    margin-top: 1px;
+  }
+  .badge-release { background: var(--badge-release-bg); color: var(--badge-release-text); }
+  .badge-concert { background: var(--badge-concert-bg); color: var(--badge-concert-text); }
+  .badge-etc     { background: var(--badge-etc-bg);     color: var(--badge-etc-text); }
+
+  .card-artist { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .card-meta { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .card-meta-item {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .card-meta-item svg {
+    width: 12px; height: 12px;
+    stroke: currentColor; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  /* ── Loading / Empty / Error ── */
+  .state-box {
+    padding: 56px 20px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .state-box svg {
+    width: 32px; height: 32px;
+    stroke: var(--text-tertiary); fill: none; stroke-width: 1.5;
+    margin: 0 auto 10px;
+    display: block;
+  }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--text-primary);
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 480px) { .page { max-width: 100%; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="sticky-top">
+    <div class="header">
+      <div class="header-eyebrow">Distribution Artists</div>
+      <div class="header-title">일정 캘린더</div>
+    </div>
+
+    <div class="month-nav">
+      <button class="nav-btn" id="prevBtn" aria-label="이전 달" onclick="changeMonth(-1)">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="month-label" id="monthLabel"></span>
+      <button class="nav-btn" id="nextBtn" aria-label="다음 달" onclick="changeMonth(1)">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <div class="filter-row" id="filterRow"></div>
+  </div>
+
+  <div id="eventList"></div>
+
+</div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ★ 여기에 Apps Script 배포 URL을 붙여넣으세요 ★
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycOi3WDUfh0JnIqV24US1BhVOphC8yHDWt7gx5f9BM9K-fgsgyKKeBIhEfhcBrSvDn/exec";
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// 표시할 월 목록 — 필요에 따라 추가하세요
+const MONTHS = ["2026-06","2026-07","2026-08"];
+const MONTH_LABELS = {
+  "2026-06": "2026년 6월",
+  "2026-07": "2026년 7월",
+  "2026-08": "2026년 8월",
+};
+
+const TYPES     = ["전체","발매","공연","기타 소식"];
+const TYPE_BADGE = { "발매":"badge-release", "공연":"badge-concert", "기타 소식":"badge-etc" };
+const WEEKDAYS  = ["일","월","화","수","목","금","토"];
+const TODAY     = new Date().toISOString().slice(0, 10); // 오늘 날짜 자동
+
+const SVG_CLOCK = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>`;
+const SVG_PIN   = `<svg viewBox="0 0 24 24"><path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+
+let monthIdx     = 0;
+let activeFilter = "전체";
+let allEvents    = [];   // 시트에서 불러온 전체 데이터 캐시
+
+// ── 초기화 ──────────────────────────────────
+function init() {
+  // 현재 달이 MONTHS 안에 있으면 그 달부터 시작
+  const thisMonth = TODAY.slice(0, 7);
+  const idx = MONTHS.indexOf(thisMonth);
+  if (idx !== -1) monthIdx = idx;
+
+  updateMonthUI();
+  buildFilters();
+  fetchData();
+}
+
+// ── 월 UI 갱신 ──────────────────────────────
+function updateMonthUI() {
+  document.getElementById("prevBtn").disabled = monthIdx === 0;
+  document.getElementById("nextBtn").disabled = monthIdx === MONTHS.length - 1;
+  document.getElementById("monthLabel").textContent = MONTH_LABELS[MONTHS[monthIdx]] || MONTHS[monthIdx];
+}
+
+function changeMonth(dir) {
+  monthIdx = Math.max(0, Math.min(MONTHS.length - 1, monthIdx + dir));
+  updateMonthUI();
+  render();
+}
+
+// ── 필터 ────────────────────────────────────
+function buildFilters() {
+  document.getElementById("filterRow").innerHTML = TYPES.map(t =>
+    `<button class="filter-chip${t === activeFilter ? " active" : ""}" data-type="${t}" onclick="setFilter('${t}')">${t}</button>`
+  ).join("");
+}
+
+function setFilter(t) {
+  activeFilter = t;
+  document.querySelectorAll(".filter-chip").forEach(c =>
+    c.classList.toggle("active", c.dataset.type === t)
+  );
+  render();
+}
+
+// ── 데이터 fetch ─────────────────────────────
+async function fetchData() {
+  showLoading();
+  try {
+    const res  = await fetch(SHEET_API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    allEvents = await res.json();
+    render();
+  } catch (e) {
+    showError(e);
+  }
+}
+
+// ── 렌더링 ──────────────────────────────────
+function render() {
+  const cm = MONTHS[monthIdx];
+  const filtered = allEvents.filter(e =>
+    e.date && e.date.startsWith(cm) &&
+    (activeFilter === "전체" || e.type === activeFilter)
+  );
+
+  const byDate = {};
+  filtered.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+
+  const el = document.getElementById("eventList");
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="state-box">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      해당 월에 일정이 없습니다
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = Object.keys(byDate).sort().map(date => {
+    const d      = new Date(date + "T00:00:00");
+    const dayNum = d.getDate();
+    const wd     = WEEKDAYS[d.getDay()];
+    const isToday = date === TODAY;
+
+    const cards = byDate[date].map(ev => `
+      <div class="event-card">
+        <div class="card-top">
+          <div class="card-title">${ev.title}</div>
+          <span class="type-badge ${TYPE_BADGE[ev.type] || "badge-etc"}">${ev.type}</span>
+        </div>
+        <div class="card-artist">${ev.artist}</div>
+        <div class="card-meta">
+          <span class="card-meta-item">${SVG_CLOCK}${ev.time}</span>
+          <span class="card-meta-item">${SVG_PIN}${ev.place}</span>
+        </div>
+      </div>
+    `).join("");
+
+    return `
+      <div class="date-section">
+        <div class="date-header">
+          <span class="date-day">${dayNum}</span>
+          <span class="date-weekday">${wd}요일</span>
+          ${isToday ? '<span class="today-badge">오늘</span>' : ""}
+        </div>
+        ${cards}
+      </div>
+    `;
+  }).join("");
+}
+
+// ── 상태 화면 ────────────────────────────────
+function showLoading() {
+  document.getElementById("eventList").innerHTML =
+    `<div class="state-box"><div class="spinner"></div>일정을 불러오는 중...</div>`;
+}
+
+function showError(e) {
+  document.getElementById("eventList").innerHTML = `<div class="state-box">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    데이터를 불러오지 못했습니다.<br>
+    <span style="font-size:12px;margin-top:6px;display:block">SHEET_API_URL을 확인해 주세요</span>
+  </div>`;
+  console.error("[Calendar] fetch error:", e);
+}
+
+init();
+</script>
+</body>
+</html>
