@@ -159,6 +159,8 @@
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
 
+  .search-row { box-sizing: border-box; }
+
   /* ── Search ── */
   .search-wrap {
     position: relative;
@@ -358,7 +360,7 @@
 
     <div class="filter-row" id="filterRow"></div>
 
-    <div class="search-row" id="searchRow" style="display:none;padding-top:10px">
+    <div class="search-row" id="searchRow" style="display:none;padding:10px 20px 0">
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
         <input class="search-input" id="searchInput" type="text" placeholder="아티스트 또는 제목 검색" oninput="onSearch(this.value)">
