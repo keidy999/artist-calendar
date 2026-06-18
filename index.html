@@ -508,8 +508,18 @@ function render() {
     const searchOk = !searchQuery ||
       (e.title  && e.title.toLowerCase().includes(searchQuery)) ||
       (e.artist && e.artist.toLowerCase().includes(searchQuery));
-    // 발매는 당일부터만 표시
-    const dateOk   = e.type === "발매" ? e.date <= TODAY : true;
+    // 발매는 당일 + 발매 시간 이후부터만 표시
+    let dateOk = true;
+    if (e.type === "발매") {
+      if (e.date > TODAY) {
+        dateOk = false;
+      } else if (e.date === TODAY) {
+        const now = new Date();
+        const nowMins = now.getHours() * 60 + now.getMinutes();
+        const [rh, rm] = (e.time || "00:00").split(":").map(Number);
+        dateOk = nowMins >= rh * 60 + rm;
+      }
+    }
     return inMonth && typeOk && searchOk && dateOk;
   });
 
